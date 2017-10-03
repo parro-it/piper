@@ -1,6 +1,6 @@
 import test from "ava";
 import getStream from "get-stream";
-import { piper } from "./modules/piper";
+import { piper } from ".";
 
 const fixture = () =>
   piper(
@@ -19,16 +19,16 @@ test("result has stdin/stdout/stderr", t => {
 
 test("run various commands piping their stdin/outs", async t => {
   const results = fixture();
-  t.is(await getStream(results.stdout), "      19\n");
+  t.is(await getStream(results.stdout), "19\n");
 });
 
 test("stdout/err are thenable", async t => {
   const results = await fixture().stdout;
-  t.is(results.toString("utf-8"), "      19\n");
+  t.is(results.toString("utf-8"), "19\n");
 });
 
 test("pipe completes when last command completes", async t => {
-  const proc = piper(["echo", "ciao"], ["/usr/bin/false"]);
+  const proc = piper(["echo", "ciao"], ["false"]);
   t.is(await proc.exitCode, 1);
 });
 

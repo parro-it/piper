@@ -1,33 +1,57 @@
-import cp from 'child_process'
-import getStream from 'get-stream'
-import pEvent from 'p-event'
+import cp from "child_process";
+import getStream from "get-stream";
+import pEvent from "p-event";
 
 export function piper(...commands) {
-	const results = {}
-	let lastSubprocess
+  const results = {};
+  let lastSubprocess;
 
-	for (const cmd of commands) {
-		const subprocess = cp.spawn(cmd[0], cmd.slice(1), {})
+  for (const cmd of commands) {
+    const subprocess = cp.spawn(cmd[0], cmd.slice(1), {});
 
-		if (!results.stdin) {
-			results.stdin = subprocess.stdin
-			results.stderr = subprocess.stderr
-		}
+    if (!results.stdin) {
+      results.stdin = subprocess.stdin;
+      results.stderr = subprocess.stderr;
+    }
 
-		if (lastSubprocess) {
-			lastSubprocess.stdout.pipe(subprocess.stdin)
-		}
+    subprocess.stdin.on("error", err => {
+      console.error("stdin", err);
+    });
 
-		lastSubprocess = subprocess
-	}
+    subprocess.stdout.on("error", err => {
+      console.error("stdout", err);
+    });
 
-	results.exitCode = pEvent(lastSubprocess, 'exit')
-	results.stdout = lastSubprocess.stdout
+    subprocess.stderr.on("error", err => {
+      console.error("stderr", err);
+    });
 
-	results.stdout.then = async fn => {
-		const completedStdout = await getStream.buffer(results.stdout)
-		fn(completedStdout)
-	}
+    subprocess.on("error", err => {
+      console.error(err);
+    });
 
-	return results
+    if (lastSubprocess) {
+      subprocess.once("exit", () => {
+        lastSubprocess.stdout.unpipe(subprocess.stdin);
+      });
+
+      lastSubprocess.once("exit", () => {
+        lastSubprocess.stdout.unpipe(subprocess.stdin);
+      });
+
+      lastSubprocess.stdout.pipe(subprocess.stdin);
+    }
+
+    lastSubprocess = subprocess;
+  }
+
+  results.exitCode = pEvent(lastSubprocess, "exit");
+  results.stdout = lastSubprocess.stdout;
+
+  results.stdout.then = async fn => {
+    const completedStdout = await getStream.buffer(results.stdout);
+    fn(completedStdout);
+  };
+
+  return results;
 }
