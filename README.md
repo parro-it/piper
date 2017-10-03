@@ -1,2 +1,2 @@
-# piper
-🛩  runs multiple shell commands piping their stdin/stdout 
+# piper 🛩
+  runs multiple shell commands piping their stdin/stdout 
