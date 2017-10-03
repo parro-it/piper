@@ -31,13 +31,19 @@ export function piper(...commands) {
     });
 
     if (lastSubprocess) {
-      subprocess.once("exit", () => {
+      const unpipe = () => {
         lastSubprocess.stdout.unpipe(subprocess.stdin);
-      });
+      };
 
-      lastSubprocess.once("exit", () => {
-        lastSubprocess.stdout.unpipe(subprocess.stdin);
-      });
+      lastSubprocess.once("SIGPIPE", unpipe);
+
+      subprocess.once("exit", unpipe);
+
+      lastSubprocess.once("exit", unpipe);
+
+      lastSubprocess.stdout.on("close", unpipe);
+      subprocess.stdin.on("close", unpipe);
+      subprocess.stdin.on("finish", unpipe);
 
       lastSubprocess.stdout.pipe(subprocess.stdin);
     }
