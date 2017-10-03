@@ -1,0 +1,71 @@
+{
+  "parserOptions": {
+    "ecmaVersion": 2017,
+    "sourceType": "module"
+  },
+  "env": {
+    "es6": true,
+    "node": true
+  },
+  "plugins": [
+    "unicorn",
+    "ava",
+    "import"
+  ],
+  "extends": [
+    "xo/esnext",
+    "prettier"
+  ],
+  "rules": {
+    "unicorn/catch-error-name": ["error", {"name": "err"}],
+    "unicorn/explicit-length-check": "error",
+    "unicorn/filename-case": ["error", {"case": "kebabCase"}],
+    "unicorn/no-abusive-eslint-disable": "error",
+    "unicorn/no-process-exit": "error",
+    "unicorn/throw-new-error": "error",
+    "unicorn/number-literal-case": "error",
+    "unicorn/escape-case": "error",
+    "unicorn/no-array-instanceof": "error",
+    "unicorn/no-new-buffer": "error",
+    "unicorn/no-hex-escape": "error",
+    "unicorn/custom-error-definition": "error",
+    "unicorn/prefer-starts-ends-with": "error",
+    "unicorn/prefer-type-error": "error",
+
+    "ava/assertion-arguments": "error",
+    "ava/max-asserts": ["off", 5],
+    "ava/no-async-fn-without-await": "error",
+    "ava/no-cb-test": "off",
+    "ava/no-duplicate-modifiers": "error",
+    "ava/no-identical-title": "error",
+    "ava/no-ignored-test-files": "error",
+    "ava/no-invalid-end": "error",
+    "ava/no-nested-tests": "error",
+    "ava/no-only-test": "error",
+    "ava/no-skip-assert": "error",
+    "ava/no-skip-test": "error",
+    "ava/no-statement-after-end": "error",
+    "ava/no-todo-implementation": "error",
+    "ava/no-todo-test": "warn",
+    "ava/no-unknown-modifiers": "error",
+    "ava/prefer-async-await": "error",
+    "ava/prefer-power-assert": "off",
+    "ava/test-ended": "error",
+    "ava/test-title": ["error", "if-multiple"],
+    "ava/use-t-well": "error",
+    "ava/use-t": "error",
+    "ava/use-test": "error",
+    "ava/use-true-false": "error",
+
+    "import/no-unresolved": "error",
+    "import/named": "error",
+    "import/namespace": "error",
+    "import/default": "error",
+    "import/export": "error",
+
+    "import/no-named-as-default": "warn",
+    "import/no-named-as-default-member": "warn",
+    "import/no-duplicates": "warn",
+    "import/unambiguous": "warn"
+  }
+}
