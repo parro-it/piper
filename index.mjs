@@ -1,4 +1,5 @@
-import test from './test'
+import test from "./test";
 
-console.log(test())
+console.log(test());
 
+dsf + dssfd;
