@@ -36,3 +36,12 @@ test("work when pipeline has one single command", async t => {
   const results = await piper(["echo", "ciao"]).stdout;
   t.is(results.toString("utf-8").trim(), "ciao");
 });
+
+test("stderr of process are merged into result", async t => {
+  const pipe = piper(
+    ["node", `${__dirname}/fixtures/echoerr1.js`],
+    ["node", `${__dirname}/fixtures/echoerr2.js`]
+  );
+  const results = await pipe.stderr;
+  t.is(results.toString("utf-8").trim(), "111222333");
+});

@@ -1,17 +1,20 @@
 import cp from "child_process";
 import getStream from "get-stream";
 import pEvent from "p-event";
+import merge from "merge2";
 
 export function piper(...commands) {
   const results = {};
+  const allStderr = [];
   let lastSubprocess;
 
   for (const cmd of commands) {
     const subprocess = cp.spawn(cmd[0], cmd.slice(1), {});
 
+    allStderr.push(subprocess.stderr);
+
     if (!results.stdin) {
       results.stdin = subprocess.stdin;
-      results.stderr = subprocess.stderr;
     }
 
     subprocess.stdin.on("error", err => {
@@ -35,15 +38,8 @@ export function piper(...commands) {
         lastSubprocess.stdout.unpipe(subprocess.stdin);
       };
 
-      lastSubprocess.once("SIGPIPE", unpipe);
-
       subprocess.once("exit", unpipe);
-
       lastSubprocess.once("exit", unpipe);
-
-      lastSubprocess.stdout.on("close", unpipe);
-      subprocess.stdin.on("close", unpipe);
-      subprocess.stdin.on("finish", unpipe);
 
       lastSubprocess.stdout.pipe(subprocess.stdin);
     }
@@ -53,11 +49,15 @@ export function piper(...commands) {
 
   results.exitCode = pEvent(lastSubprocess, "exit");
   results.stdout = lastSubprocess.stdout;
+  results.stderr = merge(allStderr, { objectMode: false });
 
-  results.stdout.then = async fn => {
-    const completedStdout = await getStream.buffer(results.stdout);
-    fn(completedStdout);
+  const makeThenable = stream => async fn => {
+    const completedStream = await getStream.buffer(stream);
+    fn(completedStream);
   };
+
+  results.stdout.then = makeThenable(results.stdout);
+  results.stderr.then = makeThenable(results.stderr);
 
   return results;
 }
