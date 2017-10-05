@@ -1,15 +1,15 @@
-import cp from "child_process";
-import getStream from "get-stream";
-import pEvent from "p-event";
-import merge from "merge2";
-import EventEmitter from "events";
+_f55‍.e([["piper",()=>piper]]);let cp;_f55‍.w("child_process",[["default",function(v){cp=v}]]);let getStream;_f55‍.w("get-stream",[["default",function(v){getStream=v}]]);let pEvent;_f55‍.w("p-event",[["default",function(v){pEvent=v}]]);let merge;_f55‍.w("merge2",[["default",function(v){merge=v}]]);let EventEmitter;_f55‍.w("events",[["default",function(v){EventEmitter=v}]]);
+
+
+
+
 
 const makeThenable = stream => async fn => {
   const completedStream = await getStream.buffer(stream);
   fn(completedStream);
 };
 
-export function piper(...commands) {
+function piper(...commands) {
   const results = new EventEmitter();
   const allStderr = [];
   let prevSubprocess;

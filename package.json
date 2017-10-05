@@ -1,13 +1,14 @@
 {
-  "name": "flash",
+  "name": "piper",
   "version": "1.0.0",
-  "description": "Modern bash compatible shell",
+  "description": "🛩 Piper runs various commands piping their stdin/outs",
   "scripts": {
-    "test": " eslint . && ava"
+    "test": "ava && eslint ."
   },
   "main": "index.mjs",
+  "module": "index.mjs",
   "keywords": [],
-  "repository": "parro-it/flash",
+  "repository": "parro-it/piper",
   "author": "Andrea Parodi <andrea@parro.it>",
   "license": "MIT",
   "devDependencies": {
@@ -23,6 +24,13 @@
     "prettier": "^1.7.4"
   },
   "ava": {
-    "require": ["@std/esm"]
+    "require": [
+      "@std/esm"
+    ]
+  },
+  "dependencies": {
+    "get-stream": "^3.0.0",
+    "merge2": "^1.2.0",
+    "p-event": "^1.3.0"
   }
 }
