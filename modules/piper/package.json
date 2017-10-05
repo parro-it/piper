@@ -24,7 +24,9 @@
     "prettier": "^1.7.4"
   },
   "ava": {
-    "require": ["@std/esm"]
+    "require": [
+      "@std/esm"
+    ]
   },
   "dependencies": {
     "get-stream": "^3.0.0",
