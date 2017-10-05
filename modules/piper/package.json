@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "🛩 Piper runs various commands piping their stdin/outs",
   "scripts": {
-    "test": "eslint . && ava"
+    "test": "ava && eslint ."
   },
   "main": "index.mjs",
   "module": "index.mjs",
@@ -24,9 +24,7 @@
     "prettier": "^1.7.4"
   },
   "ava": {
-    "require": [
-      "@std/esm"
-    ]
+    "require": ["@std/esm"]
   },
   "dependencies": {
     "get-stream": "^3.0.0",

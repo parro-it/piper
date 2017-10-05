@@ -2,59 +2,53 @@ import cp from "child_process";
 import getStream from "get-stream";
 import pEvent from "p-event";
 import merge from "merge2";
+import EventEmitter from "events";
+
+const makeThenable = stream => async fn => {
+  const completedStream = await getStream.buffer(stream);
+  fn(completedStream);
+};
 
 export function piper(...commands) {
-  const results = {};
+  const results = new EventEmitter();
   const allStderr = [];
-  let lastSubprocess;
+  let prevSubprocess;
 
   for (const cmd of commands) {
     const subprocess = cp.spawn(cmd[0], cmd.slice(1), {});
-
     allStderr.push(subprocess.stderr);
+
+    const unpipe = () => {
+      prevSubprocess.stdout.unpipe(subprocess.stdin);
+    };
+
+    const forwardEvent = err => {
+      results.emit("error", err);
+    };
 
     if (!results.stdin) {
       results.stdin = subprocess.stdin;
     }
 
-    subprocess.stdin.on("error", err => {
-      console.error("stdin", err);
-    });
+    subprocess.stdin.on("error", forwardEvent);
+    subprocess.stdout.on("error", forwardEvent);
+    subprocess.stderr.on("error", forwardEvent);
+    subprocess.on("error", forwardEvent);
 
-    subprocess.stdout.on("error", err => {
-      console.error("stdout", err);
-    });
-
-    subprocess.stderr.on("error", err => {
-      console.error("stderr", err);
-    });
-
-    subprocess.on("error", err => {
-      console.error(err);
-    });
-
-    if (lastSubprocess) {
-      const unpipe = () => {
-        lastSubprocess.stdout.unpipe(subprocess.stdin);
-      };
-
+    if (prevSubprocess) {
       subprocess.once("exit", unpipe);
-      lastSubprocess.once("exit", unpipe);
-
-      lastSubprocess.stdout.pipe(subprocess.stdin);
+      prevSubprocess.once("exit", unpipe);
+      prevSubprocess.stdout.pipe(subprocess.stdin);
     }
 
-    lastSubprocess = subprocess;
+    prevSubprocess = subprocess;
   }
 
-  results.exitCode = pEvent(lastSubprocess, "exit");
-  results.stdout = lastSubprocess.stdout;
+  results.exitCode = pEvent(prevSubprocess, "exit", {
+    rejectionEvents: "none"
+  });
+  results.stdout = prevSubprocess.stdout;
   results.stderr = merge(allStderr, { objectMode: false });
-
-  const makeThenable = stream => async fn => {
-    const completedStream = await getStream.buffer(stream);
-    fn(completedStream);
-  };
 
   results.stdout.then = makeThenable(results.stdout);
   results.stderr.then = makeThenable(results.stderr);
