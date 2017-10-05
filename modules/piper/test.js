@@ -61,3 +61,12 @@ test("`Error` event of all processes is forwarded to `error` event of the result
   const err = await errorThrown;
   t.is(err.message, "spawn nonexistent2 ENOENT");
 });
+
+test("exiting process works", async t => {
+  const pipe = piper(
+    ["node", `${__dirname}/fixtures/jerk.js`],
+    ["echo", "ciao"]
+  );
+  const results = await pipe.stdout;
+  t.is(results.toString("utf-8").trim(), "ciao");
+});

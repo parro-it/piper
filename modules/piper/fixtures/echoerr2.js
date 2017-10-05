@@ -2,4 +2,4 @@
 
 setTimeout(() => {
   process.stderr.write("222");
-}, 20);
+}, 200);
