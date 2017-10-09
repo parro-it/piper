@@ -13,13 +13,30 @@ export function piper(...commands) {
   const results = new EventEmitter();
   const allStderr = [];
   let prevSubprocess;
+  let idx = 0;
 
   for (const cmd of commands) {
-    const subprocess = cp.spawn(cmd[0], cmd.slice(1), {});
-    allStderr.push(subprocess.stderr);
+    const stdio = ["pipe", "pipe", "pipe"];
+
+    if (!results.stdin) {
+      stdio[0] = "inherit";
+    }
+
+    idx++;
+    if (idx === commands.length) {
+      stdio[1] = "inherit";
+      stdio[2] = "inherit";
+    }
+
+    const subprocess = cp.spawn(cmd[0], cmd.slice(1), { stdio });
+    if (subprocess.stderr) {
+      allStderr.push(subprocess.stderr);
+    }
 
     const unpipe = () => {
-      prevSubprocess.stdout.unpipe(subprocess.stdin);
+      if (prevSubprocess.stdout) {
+        prevSubprocess.stdout.unpipe(subprocess.stdin);
+      }
     };
 
     const forwardEvent = err => {
@@ -30,15 +47,26 @@ export function piper(...commands) {
       results.stdin = subprocess.stdin;
     }
 
-    subprocess.stdin.on("error", forwardEvent);
-    subprocess.stdout.on("error", forwardEvent);
-    subprocess.stderr.on("error", forwardEvent);
+    if (subprocess.stdin) {
+      subprocess.stdin.on("error", forwardEvent);
+    }
+
+    if (subprocess.stdout) {
+      subprocess.stdout.on("error", forwardEvent);
+    }
+
+    if (subprocess.stderr) {
+      subprocess.stderr.on("error", forwardEvent);
+    }
+
     subprocess.on("error", forwardEvent);
 
     if (prevSubprocess) {
       subprocess.once("exit", unpipe);
       prevSubprocess.once("exit", unpipe);
-      prevSubprocess.stdout.pipe(subprocess.stdin);
+      if (prevSubprocess.stdout && subprocess.stdin) {
+        prevSubprocess.stdout.pipe(subprocess.stdin);
+      }
     }
 
     prevSubprocess = subprocess;
@@ -50,8 +78,13 @@ export function piper(...commands) {
   results.stdout = prevSubprocess.stdout;
   results.stderr = merge(allStderr, { objectMode: false });
 
-  results.stdout.then = makeThenable(results.stdout);
-  results.stderr.then = makeThenable(results.stderr);
+  if (results.stdout) {
+    results.stdout.then = makeThenable(results.stdout);
+  }
+
+  if (results.stderr) {
+    results.stderr.then = makeThenable(results.stderr);
+  }
 
   return results;
 }
