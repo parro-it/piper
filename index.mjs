@@ -17,12 +17,12 @@ export function piper(...commands) {
 
   for (const cmd of commands) {
     const stdio = ["pipe", "pipe", "pipe"];
+    idx++;
 
-    if (!results.stdin) {
+    if (idx === 1) {
       stdio[0] = "inherit";
     }
 
-    idx++;
     if (idx === commands.length) {
       stdio[1] = "inherit";
       stdio[2] = "inherit";
@@ -43,7 +43,7 @@ export function piper(...commands) {
       results.emit("error", err);
     };
 
-    if (!results.stdin) {
+    if (idx === 1) {
       results.stdin = subprocess.stdin;
     }
 
