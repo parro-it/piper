@@ -57,7 +57,7 @@ export function piper(...commands) {
       results.emit("error", err);
     };
 
-    const [cmdName, ...args] = cmd.filter(c => typeof c === "string");
+    const [cmdName, ...args] = cmd.filter(c => typeof c !== "object");
 
     cmd.forEach(c => {
       if (c instanceof StderrTo) {
@@ -75,7 +75,11 @@ export function piper(...commands) {
 
     let subprocess;
     try {
-      subprocess = cp.spawn(cmdName, args, { stdio });
+      if (typeof cmdName === "function") {
+        subprocess = cmdName(args, { stdio });
+      } else {
+        subprocess = cp.spawn(cmdName, args, { stdio });
+      }
     } catch (err) {
       forwardEvent(err);
       continue;
