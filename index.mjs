@@ -3,6 +3,25 @@ import getStream from "get-stream";
 import pEvent from "p-event";
 import merge from "merge2";
 import EventEmitter from "events";
+import fs from "fs";
+
+class StdinFrom {
+  constructor(path) {
+    this.path = path;
+  }
+}
+
+class StdoutTo {
+  constructor(path) {
+    this.path = path;
+  }
+}
+
+class StderrTo {
+  constructor(path) {
+    this.path = path;
+  }
+}
 
 const makeThenable = stream => async fn => {
   const completedStream = await getStream.buffer(stream);
@@ -38,9 +57,25 @@ export function piper(...commands) {
       results.emit("error", err);
     };
 
+    const [cmdName, ...args] = cmd.filter(c => typeof c === "string");
+
+    cmd.forEach(c => {
+      if (c instanceof StderrTo) {
+        stdio[2] = fs.openSync(c.path, "w");
+      }
+
+      if (c instanceof StdoutTo) {
+        stdio[1] = fs.openSync(c.path, "w");
+      }
+
+      if (c instanceof StdinFrom) {
+        stdio[0] = fs.openSync(c.path, "r");
+      }
+    });
+
     let subprocess;
     try {
-      subprocess = cp.spawn(cmd[0], cmd.slice(1), { stdio });
+      subprocess = cp.spawn(cmdName, args, { stdio });
     } catch (err) {
       forwardEvent(err);
       continue;
@@ -100,3 +135,7 @@ export function piper(...commands) {
 
   return results;
 }
+
+export const stdinFrom = path => new StdinFrom(path);
+export const stdoutTo = path => new StdoutTo(path);
+export const stderrTo = path => new StderrTo(path);

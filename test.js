@@ -1,6 +1,10 @@
 import test from "ava";
 import getStream from "get-stream";
-import { piper, __setTestHook } from ".";
+import { stderrTo, stdoutTo, stdinFrom, piper, __setTestHook } from ".";
+import fs from "fs";
+import util from "util";
+
+const readFile = util.promisify(fs.readFile);
 
 __setTestHook();
 
@@ -29,7 +33,7 @@ test("stdout/err are thenable", async t => {
   t.is(results.toString("utf-8").trim(), "19");
 });
 
-/*
+/* Doesn't work on linux
 test("pipe completes when last command completes", async t => {
   const proc = piper(["echo", "ciao"], ["false"]);
   t.is(await proc.exitCode, 1);
@@ -73,4 +77,28 @@ test("exiting process works", async t => {
   );
   const results = await pipe.stdout;
   t.is(results.toString("utf-8").trim(), "ciao");
+});
+
+test("accept redirection of stdin", async t => {
+  const pipe = piper([stdinFrom(`${__dirname}/fixtures/lines`), "grep", "a"]);
+  const results = await pipe.stdout;
+  t.is(results.toString("utf-8").trim(), "aa\nca");
+});
+
+test("accept redirection of stdout", async t => {
+  const pipe = piper([stdoutTo(`/tmp/results`), "echo", "ciao"]);
+  await pipe.exitCode;
+  const results = await readFile(`/tmp/results`);
+  t.is(results.toString("utf8"), "ciao\n");
+});
+
+test("accept redirection of stderr", async t => {
+  const pipe = piper([
+    stderrTo(`/tmp/results2`),
+    "node",
+    `${__dirname}/fixtures/echoerr2.js`
+  ]);
+  await pipe.exitCode;
+  const results = await readFile(`/tmp/results2`);
+  t.is(results.toString("utf8"), "222");
 });
