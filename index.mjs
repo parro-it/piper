@@ -18,7 +18,7 @@ export function piper(...commands) {
   for (const cmd of commands) {
     const stdio = ["pipe", "pipe", "pipe"];
     idx++;
-
+    /*
     if (idx === 1) {
       stdio[0] = "inherit";
     }
@@ -27,7 +27,7 @@ export function piper(...commands) {
       stdio[1] = "inherit";
       stdio[2] = "inherit";
     }
-
+*/
     const subprocess = cp.spawn(cmd[0], cmd.slice(1), { stdio });
     if (subprocess.stderr) {
       allStderr.push(subprocess.stderr);
