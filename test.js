@@ -1,6 +1,8 @@
 import test from "ava";
 import getStream from "get-stream";
-import { piper } from ".";
+import { piper, __setTestHook } from ".";
+
+__setTestHook();
 
 const fixture = () =>
   piper(

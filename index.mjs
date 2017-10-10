@@ -9,6 +9,11 @@ const makeThenable = stream => async fn => {
   fn(completedStream);
 };
 
+let __testHook = false;
+export function __setTestHook() {
+  __testHook = true;
+}
+
 export function piper(...commands) {
   const results = new EventEmitter();
   const allStderr = [];
@@ -18,16 +23,21 @@ export function piper(...commands) {
   for (const cmd of commands) {
     const stdio = ["pipe", "pipe", "pipe"];
     idx++;
-    /*
-    if (idx === 1) {
-      stdio[0] = "inherit";
+
+    if (!__testHook) {
+      if (idx === 1) {
+        stdio[0] = "inherit";
+      }
+
+      if (idx === commands.length) {
+        stdio[1] = "inherit";
+      }
     }
 
-    if (idx === commands.length) {
-      stdio[1] = "inherit";
-      stdio[2] = "inherit";
-    }
-*/
+    const forwardEvent = err => {
+      results.emit("error", err);
+    };
+
     const subprocess = cp.spawn(cmd[0], cmd.slice(1), { stdio });
     if (subprocess.stderr) {
       allStderr.push(subprocess.stderr);
@@ -37,10 +47,6 @@ export function piper(...commands) {
       if (prevSubprocess.stdout) {
         prevSubprocess.stdout.unpipe(subprocess.stdin);
       }
-    };
-
-    const forwardEvent = err => {
-      results.emit("error", err);
     };
 
     if (idx === 1) {
