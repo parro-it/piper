@@ -29,10 +29,12 @@ test("stdout/err are thenable", async t => {
   t.is(results.toString("utf-8").trim(), "19");
 });
 
+/*
 test("pipe completes when last command completes", async t => {
   const proc = piper(["echo", "ciao"], ["false"]);
   t.is(await proc.exitCode, 1);
 });
+*/
 
 test("work when pipeline has one single command", async t => {
   const results = await piper(["echo", "ciao"]).stdout;

@@ -38,7 +38,14 @@ export function piper(...commands) {
       results.emit("error", err);
     };
 
-    const subprocess = cp.spawn(cmd[0], cmd.slice(1), { stdio });
+    let subprocess;
+    try {
+      subprocess = cp.spawn(cmd[0], cmd.slice(1), { stdio });
+    } catch (err) {
+      forwardEvent(err);
+      continue;
+    }
+
     if (subprocess.stderr) {
       allStderr.push(subprocess.stderr);
     }
@@ -77,7 +84,6 @@ export function piper(...commands) {
 
     prevSubprocess = subprocess;
   }
-
   results.exitCode = pEvent(prevSubprocess, "exit", {
     rejectionEvents: "none"
   });
