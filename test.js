@@ -10,79 +10,79 @@ const fixtures = `${__dirname}/fixtures`;
 __setTestHook();
 
 test("run return ", t => {
-  const results = run("echo", [42]);
+  const results = run("echo", 42);
   t.true(results instanceof Command);
 });
 
 test("Command instances have stdin property", t => {
-  const results = run("echo", [42]);
+  const results = run("echo", 42);
   t.is(typeof results.stdin, "object");
 });
 
 test("Command instances have stdout property", t => {
-  const results = run("echo", [42]);
+  const results = run("echo", 42);
   t.is(typeof results.stdout, "object");
 });
 
 test("Command instances have stderr property", t => {
-  const results = run("echo", [42]);
+  const results = run("echo", 42);
   t.is(typeof results.stderr, "object");
 });
 
 test("stdout property is thenable", async t => {
-  const results = await run("echo", [42]).stdout;
+  const results = await run("echo", 42).stdout;
   t.is(results.toString("utf-8").trim(), "42");
 });
 
 test("stderr property is thenable", async t => {
-  const results = await run("node", [`${fixtures}/echoerr2`]).stderr;
+  const results = await run("node", `${fixtures}/echoerr2`).stderr;
   t.is(results.toString("utf-8").trim(), "222");
 });
 
 test("exitCode property is resolved with process exit code", async t => {
-  const falseCmd = await run("false", []).exitCode;
-  const trueCmd = await run("true", []).exitCode;
+  const falseCmd = await run("false").exitCode;
+  const trueCmd = await run("true").exitCode;
   t.is(falseCmd, 1);
   t.is(trueCmd, 0);
 });
 
 test("pipe throw after process has started", async t => {
-  const proc = run("node", [`${fixtures}/echoerr2`]);
+  const proc = run("node", `${fixtures}/echoerr2`);
   await proc.started;
   const err = t.throws(() => proc.pipe());
   t.is(err.message, "You cannot call pipe after process has started.");
 });
 
 test("outputTo throw after process has started", async t => {
-  const proc = run("node", [`${fixtures}/echoerr2`]);
+  const proc = run("node", `${fixtures}/echoerr2`);
   await proc.started;
   const err = t.throws(() => proc.outputTo());
   t.is(err.message, "You cannot call outputTo after process has started.");
 });
 
 test("inputFrom throw after process has started", async t => {
-  const proc = run("node", [`${fixtures}/echoerr2`]);
+  const proc = run("node", `${fixtures}/echoerr2`);
   await proc.started;
   const err = t.throws(() => proc.inputFrom());
   t.is(err.message, "You cannot call inputFrom after process has started.");
 });
 
 test("redirectTo throw after process has started", async t => {
-  const proc = run("node", [`${fixtures}/echoerr2`]);
+  const proc = run("node", `${fixtures}/echoerr2`);
   await proc.started;
   const err = t.throws(() => proc.redirectTo());
   t.is(err.message, "You cannot call redirectTo after process has started.");
 });
 
 test("errorTo throw after process has started", async t => {
-  const proc = run("node", [`${fixtures}/echoerr2`]);
+  const proc = run("node", `${fixtures}/echoerr2`);
   await proc.started;
   const err = t.throws(() => proc.errorTo());
   t.is(err.message, "You cannot call errorTo after process has started.");
 });
 
 test("run various commands piping together their stdin/stdouts", async t => {
-  const results = await run("cat", [`${__dirname}/.gitignore`])
+  const results = await run("cat", `${__dirname}/.gitignore`)
     .pipe("grep", ["test"])
     .pipe("sort", ["-r"])
     .pipe("wc", ["-w"]).stdout;
@@ -90,14 +90,14 @@ test("run various commands piping together their stdin/stdouts", async t => {
 });
 
 test("stderr of process are merged into result", async t => {
-  const results = await run("node", [`${fixtures}/echoerr1.js`]).pipe("node", [
+  const results = await run("node", `${fixtures}/echoerr1.js`).pipe("node", [
     `${fixtures}/echoerr2.js`
   ]).stderr;
   t.is(results.toString("utf-8").trim(), "111222333");
 });
 
 test("exiting process works", async t => {
-  const pipe = run("node", [`${fixtures}/jerk.js`]).pipe("echo", ["ciao"]);
+  const pipe = run("node", `${fixtures}/jerk.js`).pipe("echo", ["ciao"]);
   const results = await pipe.stdout;
   t.is(results.toString("utf-8").trim(), "ciao");
 });
@@ -112,7 +112,7 @@ test("`Error` event of all processes is forwarded to `error` event of the result
 });
 
 test("not found commands are skipped from pipe", async t => {
-  const proc = run("echo", ["ciao"])
+  const proc = run("echo", "ciao")
     .pipe("nonexistent1")
     .pipe("echo", ["cat"]);
 
@@ -122,14 +122,14 @@ test("not found commands are skipped from pipe", async t => {
 });
 
 test("accept redirection of stdin", async t => {
-  const pipe = run("grep", ["a"]).inputFrom(`${fixtures}/lines`);
+  const pipe = run("grep", "a").inputFrom(`${fixtures}/lines`);
   const results = await pipe.stdout;
   t.is(results.toString("utf-8").trim(), "aa\nca");
 });
 
 test("accept redirection of stdout", async t => {
   await unlink(`/tmp/results1`).catch(() => 0);
-  const pipe = run("echo", ["ciao123"]).outputTo(`/tmp/results1`);
+  const pipe = run("echo", "ciao123").outputTo(`/tmp/results1`);
   await pipe.exitCode;
   const results = await readFile(`/tmp/results1`);
   t.is(results.toString("utf8").trim(), "ciao123");
@@ -137,10 +137,18 @@ test("accept redirection of stdout", async t => {
 
 test("accept redirection of stderr", async t => {
   await unlink(`/tmp/results2`).catch(() => 0);
-  const pipe = run("node", [`${fixtures}/echoerr2.js`]).errorTo(
-    `/tmp/results2`
-  );
+  const pipe = run("node", `${fixtures}/echoerr2.js`).errorTo(`/tmp/results2`);
   await pipe.exitCode;
   const results = await readFile(`/tmp/results2`);
   t.is(results.toString("utf8").trim(), "222");
+});
+
+test("Support pty escapes", async t => {
+  const colorLsArgs = process.platform === "darwin" ? "-G" : "--color";
+
+  const results = await run("ls", colorLsArgs, fixtures).stdout;
+  t.is(
+    results.toString("utf8").trim(),
+    "dir\nechoerr1.js\nechoerr2.js\njerk.js\nlines"
+  );
 });
