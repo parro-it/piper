@@ -2,8 +2,8 @@
 
 setTimeout(() => {
   process.stderr.write("111");
-}, 100);
+}, 200);
 
 setTimeout(() => {
   process.stderr.write("333");
-}, 300);
+}, 600);
