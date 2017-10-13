@@ -1,13 +1,11 @@
 import test from "ava";
-import { run, Command, __setTestHook } from ".";
+import { run, Command } from ".";
 import fs from "fs";
 import util from "util";
 
 const readFile = util.promisify(fs.readFile);
 const unlink = util.promisify(fs.unlink);
 const fixtures = `${__dirname}/fixtures`;
-
-__setTestHook();
 
 test("run return ", t => {
   const results = run("echo", 42);
@@ -82,20 +80,22 @@ test("errorTo throw after process has started", async t => {
 });
 
 test("run various commands piping together their stdin/stdouts", async t => {
-  const results = await run("cat", `${__dirname}/.gitignore`)
+  const proc = await run("cat", `${__dirname}/.gitignore`)
     .pipe("grep", ["test"])
     .pipe("sort", ["-r"])
-    .pipe("wc", ["-w"]).stdout;
-  t.is(results.toString("utf-8").trim(), "4");
+    .pipe("wc", ["-w"]);
+  await proc.exitCode;
+  t.is((await proc.stdout).toString("utf-8").trim(), "4");
 });
 
+/* Actually I think this is not correct. Pipe of stederr has its own operator?
 test("stderr of process are merged into result", async t => {
   const results = await run("node", `${fixtures}/echoerr1.js`).pipe("node", [
     `${fixtures}/echoerr2.js`
   ]).stderr;
   t.is(results.toString("utf-8").trim(), "111222333");
 });
-
+*/
 test("exiting process works", async t => {
   const pipe = run("node", `${fixtures}/jerk.js`).pipe("echo", ["ciao"]);
   const results = await pipe.stdout;

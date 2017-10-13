@@ -1,10 +1,26 @@
-import cp from "child_process";
+import { spawn } from "child_process";
+
 import getStream from "get-stream";
 import pEvent from "p-event";
-import merge from "merge2";
 import EventEmitter from "events";
 import fs from "fs";
 import { PassThrough } from "stream";
+import through2 from "through2";
+import _debug from "debug";
+
+const debug = _debug("piper");
+
+const log = descr =>
+  through2((chunk, enc, callback) => {
+    debug(
+      descr,
+      chunk
+        .toString("utf8")
+        .replace(/\n/g, "\\n")
+        .slice(0, 20) + ` (${chunk.length}) `
+    );
+    callback(null, chunk);
+  });
 
 const mkThenable = stream => {
   stream.then = async fn => {
@@ -13,11 +29,6 @@ const mkThenable = stream => {
   };
   return stream;
 };
-
-let __testHook = false;
-export function __setTestHook() {
-  __testHook = true;
-}
 
 function makeProcess() {
   const stdio = ["pipe", "pipe", "pipe"];
@@ -33,55 +44,51 @@ function makeProcess() {
     stdio[2] = fs.openSync(this.redirections[2], "w");
   }
 
-  const proc = cp.spawn(this.cmd, this.args, { stdio });
+  let proc;
+  try {
+    proc = spawn(this.cmd, this.args, { stdio });
+  } catch (err) {
+    debug(err, this.cmd, this.args);
+    throw err;
+  }
 
-  if (this.stdoutPipedTo) {
-    proc.stdout.pipe(this.stdoutPipedTo.stdin);
-    if (!this.redirections[2]) {
-      proc.stderr.pipe(this.stdoutPipedTo.stderr, { end: false });
-      this.stdoutPipedTo.stderr.piped++;
-    }
+  if (this.redirections[0]) {
+    proc.once("exit", () => this.stdin.end());
+  } else {
+    this.stdin.pipe(log(`Process ${this.cmd} stdin`)).pipe(proc.stdin);
+  }
 
-    this.on("error", err => this.stdoutPipedTo.emit("error", err));
-
+  if (this.redirections[1]) {
     proc.once("exit", () => this.stdout.end());
-  } else if (!this.redirections[1]) {
-    proc.stdout.pipe(this.stdout);
+  } else {
+    proc.stdout.pipe(log(`Process ${this.cmd} stdout`)).pipe(this.stdout);
   }
 
-  if (!this.redirections[0]) {
-    this.stdin.pipe(proc.stdin);
-  }
-
-  if (!this.redirections[2]) {
-    proc.stderr.pipe(this.stderr, { end: false });
-    this.stderr.piped++;
+  if (this.redirections[2]) {
+    proc.once("exit", () => this.stderr.end());
+  } else {
+    proc.stderr.pipe(this.stderr);
+    this.stderr.pipe(log(`stderr for ${this.cmd}`));
   }
 
   proc.on("error", err => {
     this.emit("error", err);
   });
 
-  proc.on("exit", () => {
-    this.stderr.piped--;
-    if (this.stdoutPipedTo) {
-      this.stdoutPipedTo.stderr.piped--;
-    }
+  proc.on("exit", err => {
+    this.emit("exit", err);
+    debug(`Process ${this.cmd} exit.`);
+  });
 
-    if (this.stderr.piped <= 0) {
-      this.stderr.end();
-    }
-
-    if (this.stdoutPipedTo && this.stdoutPipedTo.stderr.piped <= 0) {
-      this.stdoutPipedTo.stderr.end();
-    }
+  proc.on("close", err => {
+    this.emit("close", err);
+    debug(`Process ${this.cmd} close.`);
   });
 
   this._processStarted = true;
   return proc;
 }
 
-/* eslint-disable no-unused-vars */
 export class Command extends EventEmitter {
   constructor(cmd, ...args) {
     super();
@@ -89,20 +96,24 @@ export class Command extends EventEmitter {
     this.redirections = [];
     this.args = args;
 
-    const willBeProcess = Promise.resolve().then(makeProcess.bind(this));
-
     this._processStarted = false;
-    this.started = willBeProcess;
     this.stdin = new PassThrough();
     this.stdout = mkThenable(new PassThrough());
     this.stderr = mkThenable(new PassThrough());
 
-    this.stderr.piped = 0;
-    this.exitCode = willBeProcess.then(proc =>
-      pEvent(proc, "exit", {
-        rejectionEvents: "none"
-      })
-    );
+    this.exitCode = pEvent(this, "exit", {
+      rejectionEvents: "none"
+    });
+
+    this.stdin.on("close", () => debug(`stdin for ${cmd} closed.`));
+    this.stdout.on("close", () => debug(`stdout for ${cmd} closed.`));
+    this.stderr.on("close", () => debug(`stderr for ${cmd} closed.`));
+  }
+
+  start(runtimeEnv) {
+    debug("cmd start " + this.cmd);
+    this._osProcess = makeProcess.call(this, runtimeEnv);
+    debug("cmd done " + this.cmd);
   }
 
   _checkProcessNotStarted(methodName) {
@@ -116,8 +127,18 @@ export class Command extends EventEmitter {
   pipe(cmd, ...args) {
     this._checkProcessNotStarted("pipe");
     const target = new Command(cmd, ...args);
-    this.stdoutPipedTo = target;
-    target.stdinPipedFrom = target;
+    debug(`${this.cmd} piped to ${target.cmd} ${cmd}`);
+    this.stdout.pipe(target.stdin);
+
+    const originalStart = this.start;
+    this.start = runtimeEnv => {
+      debug(`${this.cmd} start patched `);
+      originalStart.call(this, runtimeEnv);
+      target.start(runtimeEnv);
+      debug(`finish ${this.cmd} start patched `);
+    };
+
+    this.on("error", err => target.emit("error", err));
     return target;
   }
 
@@ -147,9 +168,15 @@ export class Command extends EventEmitter {
 }
 
 export function run(cmd, ...args) {
-  return new Command(cmd, ...args);
+  const proc = new Command(cmd, ...args);
+
+  Promise.resolve().then(() => {
+    proc.start({});
+  });
+  return proc;
 }
 
+/* Previous API
 class StdinFrom {
   constructor(path) {
     this.path = path;
@@ -285,3 +312,4 @@ export function piper(...commands) {
 export const stdinFrom = path => new StdinFrom(path);
 export const stdoutTo = path => new StdoutTo(path);
 export const stderrTo = path => new StderrTo(path);
+*/
