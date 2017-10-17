@@ -65,8 +65,10 @@ export default class AbstractCommand extends EventEmitter {
     command.start = runtimeEnv => {
       debug(`${command.cmd} start patched `);
       originalStart.call(command, runtimeEnv);
-      this.start(runtimeEnv);
-      debug(`finish ${command.cmd} start patched `);
+      return this.start(runtimeEnv).then(res => {
+        debug(`finish ${command.cmd} start patched `);
+        return res;
+      });
     };
     this._pipedProcess = command;
 

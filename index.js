@@ -33,6 +33,7 @@ function makeProcess() {
     stdio[2] = fs.openSync(this.redirections[2], "w");
   }
 
+  debug(`Spawn ${this.cmd} ${this.args}`);
   let proc;
   try {
     proc = spawn(this.cmd, this.args, { stdio });
