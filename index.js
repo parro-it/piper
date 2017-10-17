@@ -165,14 +165,21 @@ export class Command extends EventEmitter {
     this.redirections[2] = filepath;
     return this;
   }
+
+  startLater() {
+    Promise.resolve().then(() => {
+      this.start({});
+    });
+  }
 }
 
-export function run(cmd, ...args) {
-  const proc = new Command(cmd, ...args);
+export function cmd(cmd, ...args) {
+  return new Command(cmd, ...args);
+}
 
-  Promise.resolve().then(() => {
-    proc.start({});
-  });
+export function run(command, ...args) {
+  const proc = cmd(command, ...args);
+  proc.startLater();
   return proc;
 }
 
