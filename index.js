@@ -84,6 +84,7 @@ export class Command extends AbstractCommand {
     this._processStarted = true;
 
     debug("done " + this.cmd);
+    return this.exitCode;
   }
 }
 

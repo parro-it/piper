@@ -47,19 +47,19 @@ export default class AbstractCommand extends EventEmitter {
     }
   }
 
-  pipe(cmd, args = []) {
+  pipe(cmd, args = [], { end = true } = {}) {
     this._checkProcessNotStarted("pipe");
     if (cmd instanceof AbstractCommand) {
-      return this.pipeToCommand(cmd);
+      return this.pipeToCommand(cmd, { end });
     }
     const command = new this.constructor(cmd, ...args);
-    return this.pipeToCommand(command);
+    return this.pipeToCommand(command, { end });
   }
 
-  pipeToCommand(command) {
+  pipeToCommand(command, { end = true } = {}) {
     this._checkProcessNotStarted("pipe");
     debug(`${this.cmd} piped to ${command.cmd}`);
-    this.stdout.pipe(command.stdin);
+    this.stdout.pipe(command.stdin, { end });
 
     const originalStart = command.start;
     command.start = runtimeEnv => {
