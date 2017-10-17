@@ -13,6 +13,8 @@
   "devDependencies": {
     "@std/esm": "^0.11.2",
     "ava": "^0.22.0",
+    "is-promise": "^2.1.0",
+    "is-stream": "^1.1.0",
     "lintes": "^1.2.0",
     "prettier": "^1.7.4"
   },

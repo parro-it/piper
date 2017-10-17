@@ -126,20 +126,28 @@ export class Command extends EventEmitter {
 
   pipe(cmd, ...args) {
     this._checkProcessNotStarted("pipe");
-    const target = new Command(cmd, ...args);
-    debug(`${this.cmd} piped to ${target.cmd} ${cmd}`);
-    this.stdout.pipe(target.stdin);
+    if (cmd instanceof Command) {
+      return this.pipeToCommand(cmd);
+    }
+    return this.pipeToCommand(new Command(cmd, ...args));
+  }
 
-    const originalStart = this.start;
-    this.start = runtimeEnv => {
-      debug(`${this.cmd} start patched `);
-      originalStart.call(this, runtimeEnv);
-      target.start(runtimeEnv);
-      debug(`finish ${this.cmd} start patched `);
+  pipeToCommand(command) {
+    this._checkProcessNotStarted("pipe");
+    debug(`${this.cmd} piped to ${command.cmd} ${cmd}`);
+    this.stdout.pipe(command.stdin);
+
+    const originalStart = command.start;
+    command.start = runtimeEnv => {
+      debug(`${command.cmd} start patched `);
+      originalStart.call(command, runtimeEnv);
+      this.start(runtimeEnv);
+      debug(`finish ${command.cmd} start patched `);
     };
+    this._pipedProcess = command;
 
-    this.on("error", err => target.emit("error", err));
-    return target;
+    this.on("error", err => command.emit("error", err));
+    return command;
   }
 
   redirectTo(filepath, ioNumber) {
@@ -168,7 +176,11 @@ export class Command extends EventEmitter {
 
   startLater() {
     Promise.resolve().then(() => {
-      this.start({});
+      if (this._pipedProcess) {
+        return this._pipedProcess.startLater();
+      }
+
+      return this.start({});
     });
   }
 }

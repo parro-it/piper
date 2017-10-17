@@ -1,7 +1,9 @@
 import test from "ava";
-import { run, Command } from ".";
+import { run, Command, cmd } from ".";
 import fs from "fs";
 import util from "util";
+import isStream from "is-stream";
+import isPromise from "is-promise";
 
 const readFile = util.promisify(fs.readFile);
 const unlink = util.promisify(fs.unlink);
@@ -44,6 +46,22 @@ test("exitCode property is resolved with process exit code", async t => {
   t.is(trueCmd, 0);
 });
 
+test("cmd return a Command instance", t => {
+  const args = [1, 2, 42];
+  const command = cmd("name", ...args);
+  t.is(command.cmd, "name");
+  t.deepEqual(command.redirections, []);
+  t.deepEqual(command.args, [1, 2, 42]);
+  t.not(command.args, args);
+  t.true(isStream.readable(command.stdout));
+  t.true(isStream.readable(command.stderr));
+  t.true(isStream.writable(command.stdin));
+
+  t.true(isPromise(command.stdout));
+  t.true(isPromise(command.stderr));
+  t.true(isPromise(command.exitCode));
+});
+
 test("pipe throw after process has started", async t => {
   const proc = run("node", `${fixtures}/echoerr2`);
   await proc.started;
@@ -84,6 +102,16 @@ test("run various commands piping together their stdin/stdouts", async t => {
     .pipe("grep", ["test"])
     .pipe("sort", ["-r"])
     .pipe("wc", ["-w"]);
+  await proc.exitCode;
+  t.is((await proc.stdout).toString("utf-8").trim(), "4");
+});
+
+test("can pipe to other commands", async t => {
+  const proc = cmd("cat", `${__dirname}/.gitignore`)
+    .pipe(cmd("grep", "test"))
+    .pipe(cmd("sort", "-r"))
+    .pipe(cmd("wc", "-w"));
+  proc.start();
   await proc.exitCode;
   t.is((await proc.stdout).toString("utf-8").trim(), "4");
 });
