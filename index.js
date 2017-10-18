@@ -63,10 +63,13 @@ function makeProcess() {
 
   proc.on("error", err => {
     this.emit("error", err);
+    this.stderr.end();
+    this.stdout.end();
+    this.stdin.end();
   });
 
-  proc.on("exit", err => {
-    this.emit("exit", err);
+  proc.on("exit", code => {
+    this.emit("exit", code);
     debug(`Process ${this.cmd} exit.`);
   });
 
@@ -84,8 +87,16 @@ export class Command extends AbstractCommand {
     this._osProcess = makeProcess.call(this, runtimeEnv);
     this._processStarted = true;
 
-    debug("done " + this.cmd);
-    return this.exitCode;
+    const errored = new Promise(resolve => {
+      this._osProcess.on("error", err => {
+        resolve(err);
+      });
+    });
+
+    return Promise.race([this.exitCode, errored]).then(exitCode => {
+      debug("done " + this.cmd);
+      return exitCode;
+    });
   }
 }
 
