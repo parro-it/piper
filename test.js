@@ -30,13 +30,13 @@ test("Command instances have stderr property", t => {
 });
 
 test("stdout property is thenable", async t => {
-  const results = await run("echo", 42).stdout;
-  t.is(results.toString("utf-8").trim(), "42");
+  const results = await run("echo", 42).stdout.utf8String();
+  t.is(results, "42");
 });
 
 test("stderr property is thenable", async t => {
-  const results = await run("node", `${fixtures}/echoerr2`).stderr;
-  t.is(results.toString("utf-8").trim(), "222");
+  const results = await run("node", `${fixtures}/echoerr2`).stderr.utf8String();
+  t.is(results, "222");
 });
 
 test("exitCode property is resolved with process exit code", async t => {
@@ -103,7 +103,7 @@ test("run various commands piping together their stdin/stdouts", async t => {
     .pipe("sort", ["-r"])
     .pipe("wc", ["-w"]);
   await proc.exitCode;
-  t.is((await proc.stdout).toString("utf-8").trim(), "4");
+  t.is(await proc.stdout.utf8String(), "4");
 });
 
 test("can pipe to other commands", async t => {
@@ -113,7 +113,7 @@ test("can pipe to other commands", async t => {
     .pipe(cmd("wc", "-w"));
   proc.start();
   await proc.exitCode;
-  t.is((await proc.stdout).toString("utf-8").trim(), "4");
+  t.is(await proc.stdout.utf8String(), "4");
 });
 
 /* Actually I think this is not correct. Pipe of stederr has its own operator?
@@ -126,8 +126,7 @@ test("stderr of process are merged into result", async t => {
 */
 test("exiting process works", async t => {
   const pipe = run("node", `${fixtures}/jerk.js`).pipe("echo", ["ciao"]);
-  const results = await pipe.stdout;
-  t.is(results.toString("utf-8").trim(), "ciao");
+  t.is(await pipe.stdout.utf8String(), "ciao");
 });
 
 test("`Error` event of all processes is forwarded to `error` event of the result object", async t => {
@@ -145,14 +144,14 @@ test("not found commands are skipped from pipe", async t => {
     .pipe("echo", ["cat"]);
 
   proc.on("error", () => 0);
-  const results = await proc.stdout;
-  t.is(results.toString("utf-8").trim(), "cat");
+  const results = await proc.stdout.utf8String();
+  t.is(results, "cat");
 });
 
 test("accept redirection of stdin", async t => {
   const pipe = run("grep", "a").inputFrom(`${fixtures}/lines`);
-  const results = await pipe.stdout;
-  t.is(results.toString("utf-8").trim(), "aa\nca");
+  const results = await pipe.stdout.utf8String();
+  t.is(results, "aa\nca");
 });
 
 test("accept redirection of stdout", async t => {
