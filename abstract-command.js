@@ -11,6 +11,9 @@ const mkThenable = stream => {
     const completedStream = await getStream.buffer(stream);
     fn(completedStream);
   };
+  stream.utf8String = () =>
+    getStream.buffer(stream).then(buffer => buffer.toString("utf8").trim());
+
   return stream;
 };
 
