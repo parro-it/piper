@@ -86,6 +86,7 @@ export class Command extends AbstractCommand {
     debug("start " + this.cmd);
     this._osProcess = makeProcess.call(this, runtimeEnv);
     this._processStarted = true;
+    this.pid = this._osProcess.pid;
 
     const errored = new Promise(resolve => {
       this._osProcess.on("error", err => {
