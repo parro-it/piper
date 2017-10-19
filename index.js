@@ -6,7 +6,6 @@ import _debug from "debug";
 
 import AbstractCommand from "./abstract-command";
 const debug = _debug("piper");
-
 const log = descr =>
   through2((chunk, enc, callback) => {
     debug(

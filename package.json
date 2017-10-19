@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "🛩 Piper runs various commands piping their stdin/outs",
   "scripts": {
-    "test": "ava && lintes .",
-    "dev": "ava --watch & lintes . --watch"
+    "test": "ava && linterjs .",
+    "dev": "ava --watch & linterjs . --watch"
   },
   "keywords": [],
   "repository": "parro-it/piper",
@@ -15,16 +15,12 @@
     "ava": "^0.22.0",
     "is-promise": "^2.1.0",
     "is-stream": "^1.1.0",
-    "lintes": "^1.2.0",
+    "linterjs": "^1.5.0",
     "prettier": "^1.7.4"
   },
-  "files": [
-    "index.js"
-  ],
+  "files": ["index.js"],
   "ava": {
-    "require": [
-      "@std/esm"
-    ]
+    "require": ["@std/esm"]
   },
   "@std/esm": {
     "esm": "js",
