@@ -94,7 +94,7 @@ export class Command extends AbstractCommand {
     });
 
     return Promise.race([this.exitCode, errored]).then(exitCode => {
-      debug("done " + this.cmd);
+      debug(`done ${this.cmd} with exit code ${exitCode}`);
       return exitCode;
     });
   }
