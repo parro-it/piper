@@ -18,72 +18,75 @@ const log = descr =>
     callback(null, chunk);
   });
 
-function makeProcess() {
+function makeProcess(command, env) {
   const stdio = ["pipe", "pipe", "pipe"];
-  if (this.redirections[0]) {
-    stdio[0] = fs.openSync(this.redirections[0], "r");
+  if (command.redirections[0]) {
+    stdio[0] = fs.openSync(command.redirections[0], "r");
   }
 
-  if (this.redirections[1]) {
-    stdio[1] = fs.openSync(this.redirections[1], "w");
+  if (command.redirections[1]) {
+    stdio[1] = fs.openSync(command.redirections[1], "w");
   }
 
-  if (this.redirections[2]) {
-    stdio[2] = fs.openSync(this.redirections[2], "w");
+  if (command.redirections[2]) {
+    stdio[2] = fs.openSync(command.redirections[2], "w");
   }
 
-  debug(`Spawn ${this.cmd} ${this.args}`);
+  debug(`Spawn ${command.cmd} ${command.args} (env:${JSON.stringify(env)})`);
   let proc;
   try {
-    proc = spawn(this.cmd, this.args, { stdio });
+    proc = spawn(command.cmd, command.args, {
+      stdio,
+      env
+    });
   } catch (err) {
-    debug(err, this.cmd, this.args);
+    debug(err, command.cmd, command.args);
     throw err;
   }
 
-  if (this.redirections[0]) {
-    proc.once("exit", () => this.stdin.end());
+  if (command.redirections[0]) {
+    proc.once("exit", () => command.stdin.end());
   } else {
-    this.stdin.pipe(log(`Process ${this.cmd} stdin`)).pipe(proc.stdin);
+    command.stdin.pipe(log(`Process ${command.cmd} stdin`)).pipe(proc.stdin);
   }
 
-  if (this.redirections[1]) {
-    proc.once("exit", () => this.stdout.end());
+  if (command.redirections[1]) {
+    proc.once("exit", () => command.stdout.end());
   } else {
-    proc.stdout.pipe(log(`Process ${this.cmd} stdout`)).pipe(this.stdout);
+    proc.stdout.pipe(log(`Process ${command.cmd} stdout`)).pipe(command.stdout);
   }
 
-  if (this.redirections[2]) {
-    proc.once("exit", () => this.stderr.end());
+  if (command.redirections[2]) {
+    proc.once("exit", () => command.stderr.end());
   } else {
-    proc.stderr.pipe(this.stderr);
-    this.stderr.pipe(log(`stderr for ${this.cmd}`));
+    proc.stderr.pipe(command.stderr);
+    command.stderr.pipe(log(`stderr for ${command.cmd}`));
   }
 
   proc.on("error", err => {
-    this.emit("error", err);
-    this.stderr.end();
-    this.stdout.end();
-    this.stdin.end();
+    command.emit("error", err);
+    command.stderr.end();
+    command.stdout.end();
+    command.stdin.end();
   });
 
   proc.on("exit", code => {
-    this.emit("exit", code);
-    debug(`Process ${this.cmd} exit.`);
+    command.emit("exit", code);
+    debug(`Process ${command.cmd} exit.`);
   });
 
   proc.on("close", err => {
-    this.emit("close", err);
-    debug(`Process ${this.cmd} close.`);
+    command.emit("close", err);
+    debug(`Process ${command.cmd} close.`);
   });
 
   return proc;
 }
 
 export class Command extends AbstractCommand {
-  start(runtimeEnv) {
+  start(env) {
     debug("start " + this.cmd);
-    this._osProcess = makeProcess.call(this, runtimeEnv);
+    this._osProcess = makeProcess(this, env);
     this._processStarted = true;
     this.pid = this._osProcess.pid;
 
