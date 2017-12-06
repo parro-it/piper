@@ -1,5 +1,5 @@
 {
-  "name": "piper",
+  "name": "piper-process",
   "version": "1.2.0",
   "description": "🛩 Piper runs various commands piping their stdin/outs",
   "scripts": {
@@ -18,14 +18,9 @@
     "linterjs": "^1.5.0",
     "prettier": "^1.7.4"
   },
-  "files": [
-    "index.js",
-    "abstract-command.js"
-  ],
+  "files": ["index.js", "abstract-command.js"],
   "ava": {
-    "require": [
-      "@std/esm"
-    ]
+    "require": ["@std/esm"]
   },
   "@std/esm": {
     "esm": "js",
