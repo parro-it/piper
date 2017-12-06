@@ -18,13 +18,9 @@
     "linterjs": "^1.5.0",
     "prettier": "^1.7.4"
   },
-  "files": [
-    "index.js"
-  ],
+  "files": ["index.js", "abstract-command.js"],
   "ava": {
-    "require": [
-      "@std/esm"
-    ]
+    "require": ["@std/esm"]
   },
   "@std/esm": {
     "esm": "js",
