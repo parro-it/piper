@@ -103,13 +103,13 @@ export default class AbstractCommand extends EventEmitter {
     return this;
   }
 
-  startLater() {
+  startLater(env) {
     Promise.resolve().then(() => {
       if (this._pipedProcess) {
         return this._pipedProcess.startLater();
       }
 
-      return this.start({});
+      return this.start(env);
     });
   }
 }
